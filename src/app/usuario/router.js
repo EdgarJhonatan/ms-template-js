@@ -1,9 +1,11 @@
 import { Router } from "express";
 import usuarioCtrl from "./usuarioController";
+const { validarJWT } = require("../../middlewares/validar-jwt");
 
 const router = Router();
 
 router.post(`/addUser`, usuarioCtrl.addUsuario);
-//router.get(`/getUser/:documento`, usuarioCtrl.getUsuario);
+router.post(`/login`, usuarioCtrl.loginUsuario);
+router.get(`/renew`, validarJWT, usuarioCtrl.revalidarToken);
 
 export default router;
