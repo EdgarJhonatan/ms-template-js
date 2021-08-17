@@ -2,27 +2,29 @@ import services from "../../../axios/index";
 import { setearVariables } from "../../../utils/setearVariables";
 
 class functions {
-  async getUsuario(documento) {
+async getUsuario(documento, tipoAccion) {
     try {
       var rpta;
       await services(
         process.env.LB_CENTRAL,
-        `/lb/central/listarUsuario?documento=${documento}`,
+        `/lb/central/listarUsuario?codigo=${documento}&tipoAccion=${tipoAccion}`,
         {},
         "GET"
       )
         .then((r) => {
+          console.log(r);
           if (r.codRes == "00") {
             const datos = r.data;
             const json = datos.map((item) => setearVariables(item, true));
             rpta = {
-              codRes: "00",
+              codRes: r.codRes,
+              message: r.message,
               data: json,
             };
           } else {
             rpta = {
-              codRes: "99",
-              message: "Error interno",
+              codRes: r.codRes,
+              message: r.message,
             };
           }
         })

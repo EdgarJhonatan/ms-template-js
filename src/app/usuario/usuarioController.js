@@ -17,6 +17,8 @@ class Usuario {
         email,
         password,
         role,
+        sucursal,
+        tipoAccion
       } = req.body;
 
       const data = {
@@ -27,6 +29,8 @@ class Usuario {
         email,
         password: bcrypt.hashSync(password, salt),
         role,
+        sucursal,
+        tipoAccion
       };
 
       console.log(documento, nombre);
@@ -42,7 +46,7 @@ class Usuario {
       )
         .then((r) => {
           console.log("res", r);
-          if ((r.codRes = "00")) {
+          if (r.codRes == "00") {
             rpta = r;
           } else {
             rpta = r;
@@ -71,55 +75,90 @@ class Usuario {
 
   async loginUsuario(req, res) {
     try {
-      const { documento, password } = req.body;
+      const documento = req.body.usuario;
+      const password = req.body.password;
+
 
       //Traer password BD usario
-      const userDB = await functions.getUsuario(documento);
-      const codigoUsuario = userDB.data[0].codigoUsuario;
-      const nombre = userDB.data[0].nombres;
-
-      //Confirmar si es el password hace match
-      const validaPassword = bcrypt.compareSync(
-        password,
-        userDB.data[0].password
-      );
-
-      if (!validaPassword) {
+      const userDB = await functions.getUsuario(documento, '1');
+      if (userDB.codRes == "01") {
         return res.json({
-          codRed: "01",
-          mesagge: "El password o usuario no son válidos",
+          codRes: "01",
+          message: "El password o usuario no son válidos",
+        });
+      } else {
+        const codigoUsuario = userDB.data[0].codigoUsuario;
+        const nombre = userDB.data[0].nombres;
+
+        //Confirmar si es el password hace match
+        const validaPassword = bcrypt.compareSync(
+          password,
+          userDB.data[0].password
+        );
+
+        if (!validaPassword) {
+          return res.json({
+            codRes: "01",
+            message: "El password o usuario no son válidos",
+          });
+        }
+
+        //Generar el JWT
+        const token = await generarJWT(documento, nombre);
+
+        //Guardar log de login
+        const dataLog = { codigoUsuario, documento };
+        const logUsuario = await functions.logLogin(dataLog);
+
+        delete userDB.data[0].password;
+        delete userDB.data[0].fe_delete;
+        delete userDB.data[0].fe_regist;
+
+        res.json({
+          codRes: logUsuario.codRes,
+          message: logUsuario.message,
+          ...userDB.data[0],
+          token,
         });
       }
-
-      //Generar el JWT
-      const token = await generarJWT(documento, nombre);
-
-      //Guardar log de login
-      const dataLog = { codigoUsuario, documento };
-      const logUsuario = await functions.logLogin(dataLog);
-
-      res.json({
-        codRes: logUsuario.codRes,
-        message: logUsuario.message,
-        nombre: userDB.data[0].nombres,
-        documento: documento,
-        token,
-      });
     } catch (error) {
-      console.log("TRY CATCH addUsuario", error);
+      console.log("TRY CATCH loginUsuario", error);
       res.json({
         codRes: "99",
-        message: "Error Interno (TRY CATCH) addUsuario ",
+        message: "Error Interno (TRY CATCH) loginUsuario ",
       });
       throw new errorTypes.Error500("500", error);
     }
+  }
+
+  async listarUsuario (req, res) {
+    try {
+      const {codigo, tipoAccion} = req.query;
+      //Leer la base de datos
+      const usuarios = await functions.getUsuario(codigo, tipoAccion);
+      console.log("usuarios", usuarios);
+
+      res.json({
+        codRes: usuarios.codRes,
+        message: usuarios.message,
+        data: usuarios.data
+      });      
+    } catch (error) {
+      console.log("TRY CATCH listarUsuario", error);
+      res.json({
+        codRes: "99",
+        message: "Error Interno (TRY CATCH) listarUsuario ",
+      });
+      throw new errorTypes.Error500("500", error);
+    }
+
   }
 
   async revalidarToken(req, res) {
     const { documento } = req;
 
     //Leer la base de datos
-    const userDB = await functions.getUsuario(documento);
+    const userDB = await functions.getUsuario(documento, '1');
     const nombre = userDB.data[0].nombres;
 
     //Generar el JWT

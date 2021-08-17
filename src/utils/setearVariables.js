@@ -8,6 +8,10 @@ const variables = [
   ["apellidoMaterno", "no_apemat"],
   ["email", "no_correo"],
   ["password", "no_passwo"],
+  ["role", "no_rolusu"],
+  ["nombreSucursal", "no_sucurs"],
+  ["sucursal", "co_sucurs"],
+  ["estado", "il_activo"],
 ];
 
 const setearVariables = (json, db) => {
